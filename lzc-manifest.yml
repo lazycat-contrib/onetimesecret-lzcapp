@@ -18,7 +18,8 @@ services:
     command:
       - valkey-server
       - --requirepass
-      - "{{ printf "%x" (stable_secret "valkey_password") }}"
+      - >-
+        {{ printf "%x" (stable_secret "valkey_password") }}
     binds:
       # Holds the pending secrets and account data.
       - /lzcapp/var/valkey:/data
