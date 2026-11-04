@@ -1,0 +1,18 @@
+package: community.lazycat.app.onetimesecret
+name: OneTimeSecret
+version: 0.0.0
+description: "Share passwords and private links securely: send a secret as a one-time URL that expires after being viewed."
+min_os_version: "1.5.0"
+homepage: https://onetimesecret.com/
+author: Delano and contributors
+license: MIT
+permissions:
+  required:
+    - net.internet
+locales:
+  zh:
+    name: OneTimeSecret
+    description: "安全分享密码与隐私链接：把内容生成一次性网址，被查看后自动失效。"
+  en:
+    name: OneTimeSecret
+    description: "Share passwords and private links securely: send a secret as a one-time URL that expires after being viewed."

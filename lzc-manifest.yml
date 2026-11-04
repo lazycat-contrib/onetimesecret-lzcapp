@@ -1,0 +1,67 @@
+application:
+  subdomain: onetimesecret
+  multi_instance: false
+  # The app has its own account system (sign-in / sign-up screens), so it is
+  # exposed directly and authenticates users itself.
+  public_path:
+    - /
+  upstreams:
+    - location: /
+      backend: http://onetimesecret:3000/
+
+services:
+  maindb:
+    image: docker.1ms.run/valkey/valkey:8.1-bookworm
+    environment:
+      # The app authenticates with this same secret via VALKEY_URL below.
+      - REDISCLI_AUTH={{ printf "%x" (stable_secret "valkey_password") }}
+    command:
+      - valkey-server
+      - --requirepass
+      - "{{ printf "%x" (stable_secret "valkey_password") }}"
+    binds:
+      # Holds the pending secrets and account data.
+      - /lzcapp/var/valkey:/data
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli ping || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  onetimesecret:
+    # upstream: onetimesecret/onetimesecret:v0.26.19
+    image: docker.1ms.run/onetimesecret/onetimesecret:v0.26.19
+    environment:
+      - VALKEY_URL=redis://:{{ printf "%x" (stable_secret "valkey_password") }}@maindb:6379/0
+      # Required by upstream; the app refuses to start without them.
+      - SECRET={{ stable_secret "secret" }}
+      - SESSION_SECRET={{ stable_secret "session_secret" }}
+      - AUTHENTICATION_MODE=simple
+      # Upstream serves plain HTTP on 3000 by design and fails closed in
+      # production mode: behind a TLS terminator the secure-cookie flag must be
+      # turned on, or every login silently fails to set a session.
+      - SSL=true
+      - SESSION_COOKIE_SECURE=true
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+    depends_on:
+      - maindb
+
+usage: |
+  OneTimeSecret 用于安全地分享密码与隐私链接：把要传的内容生成一个一次性网址，
+  对方打开查看后即失效，避免密码直接留在聊天记录里。
+
+  - 首次访问可以注册账号（也可以不注册、直接生成一次性链接）。
+    应用自带账号体系，所以它直接对外开放（public_path），登录与权限由 OneTimeSecret 自己负责。
+  - 后台由 Valkey（Redis 兼容）保存待查看的密文与账号数据，两个服务都在应用内部，
+    不需要你另外准备数据库。
+  - **邮件发送未配置**：注册验证、找回密码等依赖邮件的功能需要你自行配置 SMTP，
+    不配也不影响未登录状态下直接生成与查看一次性链接。
+  - 未做真机验证：注册登录、生成与查看密文、过期失效以及重启后数据留存
+    均未在设备上实测。
