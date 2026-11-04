@@ -1,6 +1,6 @@
 package: community.lazycat.app.onetimesecret
 name: OneTimeSecret
-version: 0.0.0
+version: 0.26.19
 description: "Share passwords and private links securely: send a secret as a one-time URL that expires after being viewed."
 min_os_version: "1.5.0"
 homepage: https://onetimesecret.com/
